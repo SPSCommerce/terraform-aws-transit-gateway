@@ -57,7 +57,10 @@ resource "aws_ec2_transit_gateway_route" "this" {
   destination_cidr_block = local.vpc_attachments_with_routes[count.index][1]["destination_cidr_block"]
   blackhole              = lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", null)
 
-  transit_gateway_route_table_id = var.create_tgw ? aws_ec2_transit_gateway_route_table.this[0].id : var.transit_gateway_route_table_id
+  # sps: changed the line below to make it mandatory to
+  # provide a transit gateway route table id for every attachment
+  # if you want to add custom routes.
+  transit_gateway_route_table_id = var.transit_gateway_route_table_id
   transit_gateway_attachment_id  = tobool(lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", false)) == false ? aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_with_routes[count.index][0]["key"]].id : null
 }
 
@@ -76,14 +79,16 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   transit_gateway_default_route_table_association = lookup(each.value, "transit_gateway_default_route_table_association", true)
   transit_gateway_default_route_table_propagation = lookup(each.value, "transit_gateway_default_route_table_propagation", true)
 
-  tags = merge(
-    {
-      Name = format("%s-%s", var.name, each.key)
-    },
-    var.tags,
-    var.tgw_vpc_attachment_tags,
-  )
+  # tags = merge(
+  #   {
+  #     Name = format("%s-%s", var.name, each.key)
+  #   },
+  #   var.tags,
+  #   var.tgw_vpc_attachment_tags,
+  # )
 }
+
+#################
 
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
   for_each = local.vpc_attachments_without_default_route_table_association
